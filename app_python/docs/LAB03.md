@@ -24,7 +24,7 @@ The suite currently holds five tests and runs in <1 s locally. Instructions for 
 ## Task 2 — GitHub Actions CI Workflow (4 pts)
 
 - **Workflow file:** `.github/workflows/python-ci.yml`
-- **Triggers:** Runs on push to `main`, `master`, and `lab3`, plus pull requests targeting `main/master`. Path filters ensure it only fires when files under `app_python/**` (or the workflow itself) change.
+- **Triggers:** Runs on push to `main`, `master`, and `lab3`, **every Git tag push**, manual `workflow_dispatch`, plus pull requests targeting `main/master`. Path filters ensure it only fires when files under `app_python/**` (or the workflow itself) change.
 - **Job topology:**
 	- `test-and-lint` (matrix over Python 3.11 & 3.12)
 		- Restores pip cache
@@ -32,7 +32,7 @@ The suite currently holds five tests and runs in <1 s locally. Instructions for 
 		- Runs `flake8` (fails on lint errors)
 		- Runs pytest (`--maxfail=1`)
 		- Executes Snyk dependency scan when `SNYK_TOKEN` secret is provided
-	- `build-and-push` (depends on previous job, only on main/master/tags)
+	- `build-and-push` (depends on previous job, runs on `main`, `master`, `lab3`, and tags)
 		- Verifies `DOCKERHUB_REPO` secret is set (`IMAGE` env)
 		- Uses Buildx/QEMU to build the Docker image
 		- Tags images with CalVer (`YYYY.MM.DD-RUN_NUMBER`) + `latest`
@@ -41,9 +41,11 @@ The suite currently holds five tests and runs in <1 s locally. Instructions for 
 - **Secrets required:**
 	- `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `DOCKERHUB_REPO` (e.g., `alliumpro/devops-info-service`)
 	- `SNYK_TOKEN` (optional but recommended to get security feedback)
-- **Evidence to capture after pushing:**
-	- GitHub Actions run link (Actions tab → workflow → successful run URL)
-	- Docker Hub page showing the CalVer + `latest` tags
+- **Evidence captured after pushing:**
+	- GitHub Actions run (matrix + build job) — see Screenshot 1 below.
+	- Docker Hub repository showing the CalVer tag (`2026.02.07-XX`) plus `latest` — Screenshot 2.
+	- Snyk log excerpt proving the security step passed — Screenshot 3.
+	- Local pytest run output — Screenshot 4.
 
 ## Task 3 — CI Best Practices & Security (3 pts)
 
@@ -86,12 +88,15 @@ This yields ~25× faster installs on repeated CI runs.
 | Workflow runs | Push branch to GitHub → Actions tab → “Python CI — tests, lint, build & push” |
 | Docker Hub image | https://hub.docker.com/r/alliumpro/devops-info-service (replace with your namespace if different) |
 
-## Screenshot plan (store under `app_python/docs/screenshots/`)
+## Screenshots
 
-1. `04-ci-green-run.png` — GitHub Actions run showing all steps green.
-2. `05-dockerhub-calver.png` — Docker Hub repository with CalVer + latest tags.
-3. `06-snyk-scan.png` — Snyk step output (after adding the token to secrets).
-4. `07-pytest-local.png` — Terminal proof of local tests passing.
+All screenshots live in `app_python/docs/screenshots/` and are embedded below for quick reference:
+
+1. **CI pipeline success** — ![CI run](screenshots/04-ci-green-run.png)
+2. **Docker Hub tags (CalVer + latest)** — ![Docker Hub](screenshots/05-dockerhub-calver.png)
+3. **Snyk scan log** — ![Snyk scan](screenshots/06-snyk-scan.png)
+4. **Local pytest run** — ![Pytest output](screenshots/07-pytest-local.png)
+5. *(Bonus)* README badge proof — ![README badge](screenshots/08-readme-badge.png)
 
 ## Submission checklist
 
