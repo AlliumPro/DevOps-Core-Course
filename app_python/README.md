@@ -1,75 +1,58 @@
-# DevOps Info Service
+# DevOps Info Service ![Python CI](https://github.com/AlliumPro/DevOps-Core-Course/actions/workflows/python-ci.yml/badge.svg?branch=lab3)
 
-Lightweight Flask-based web service for the DevOps course. Provides system
-and runtime information and a health endpoint for monitoring.
+Flask-based info service used throughout the DevOps core course. It reports service metadata, host information, runtime stats, and exposes a `/health` endpoint for probes.
 
-## Overview
+## Features
 
-This service returns detailed information about the host, runtime and
-incoming requests. It's intended as the base service for further labs where
-we'll containerize, add CI/CD, monitoring and persistence.
-
-## Prerequisites
-
-- Python 3.11+
-- pip
-
-## Installation
-
-# DevOps Info Service
-
-Lightweight Flask web service for the DevOps course. The app returns
-service, system and runtime information and exposes a health endpoint used
-by monitoring and Kubernetes probes.
-
-## Overview
-
-This repository contains a simple information service used in the course
-labs. It is intentionally small so we can focus on containerization,
-CI/CD and deployment practices in subsequent labs.
+- JSON payload describing the service, host OS/CPU, runtime uptime and request metadata
+- Health endpoint for liveness/readiness checks
+- Dockerfile for reproducible builds
+- Pytest suite covering `/`, `/health`, and error handling
+- GitHub Actions workflow for lint → test → Docker build/push with CalVer tagging and optional Snyk scan
 
 ## Prerequisites
 
-- Python 3.11+ (3.13 recommended)
+- Python 3.11+ (3.13 container image)
 - pip
-- (optional) Docker to build and run the container
+- (optional) Docker & Docker Hub account for publishing images
 
-## Installation (local / development)
-
-Create a virtual environment and install dependencies:
+## Local setup
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+cd app_python
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
-## Running the application
-
-Run locally (default binds to `0.0.0.0:5000`):
+## Running the app
 
 ```bash
+# default: 0.0.0.0:5000
 python3 app.py
-```
 
-Run on a custom host/port (example binds to `127.0.0.1:8080`):
+# custom host/port
+HOST=127.0.0.1 PORT=8080 python3 app.py
 
-```bash
-PORT=8080 HOST=127.0.0.1 python3 app.py
-```
-
-Production note: use a WSGI server (gunicorn) for production-like testing:
-
-```bash
+# production-style
 gunicorn -w 4 -b 0.0.0.0:8000 app:app
 ```
 
-## API Endpoints
+## Testing & linting
 
-- `GET /` — service, system and runtime information (JSON)
-- `GET /health` — simple health check (JSON)
+```bash
+# run tests
+pytest -q
 
-Example quick checks:
+# run tests with coverage (optional)
+pytest --cov=app_python --cov-report=term-missing
+
+# lint
+flake8 app_python
+```
+
+## API quick check
 
 ```bash
 curl -s http://127.0.0.1:5000/ | jq .
@@ -78,52 +61,48 @@ curl -s http://127.0.0.1:5000/health | jq .
 
 ## Configuration
 
-Environment variables supported by the app:
+| Variable | Default   | Purpose                              |
+| --- | --- | --- |
+| `HOST` | `0.0.0.0` | Address to bind the Flask server |
+| `PORT` | `5000`    | TCP port                           |
+| `DEBUG` | `false`  | Enables Flask debug mode          |
 
-| Variable | Default   | Description                                |
-|----------|-----------|--------------------------------------------|
-| `HOST`   | `0.0.0.0` | Address to bind the server                 |
-| `PORT`   | `5000`    | TCP port for the web service               |
-| `DEBUG`  | `false`   | Enable Flask debug mode when set to `true` |
-
-## Docker (image & container)
-
-Build the Docker image (from `app_python/`):
+## Docker usage
 
 ```bash
+# build (from repo root)
 docker build -t alliumpro/devops-info-service:lab02 ./app_python
-```
 
-Run the container with port mapping:
+# run
+docker run --rm -p 8080:5000 alliumpro/devops-info-service:lab02
 
-```bash
-docker run --rm -p 8080:5000 --name devops-info-service alliumpro/devops-info-service:lab02
-```
-
-Pull the published image from Docker Hub:
-
-```bash
+# pull published image
 docker pull alliumpro/devops-info-service:lab02
 ```
 
+## CI/CD workflow
+
+Workflow file: `.github/workflows/python-ci.yml`
+
+Pipeline stages:
+1. Checkout + Python setup (3.11)
+2. Pip cache restore → install dependencies (prod + dev)
+3. Lint via `flake8`
+4. Pytest suite (fail-fast)
+5. Snyk dependency scan (runs when `SNYK_TOKEN` secret is configured)
+6. Build & push Docker image with CalVer + `latest` tags (main/master branch)
+
+### Required GitHub secrets
+
+| Secret | Description |
+| --- | --- |
+| `DOCKERHUB_USERNAME` | Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub access token with write perms |
+| `DOCKERHUB_REPO` | Target repo, e.g. `alliumpro/devops-info-service` |
+| `SNYK_TOKEN` | API token to enable the Snyk scan step |
+
 ## Troubleshooting
 
-- If port 5000 is already in use on the host, run the container with a
-	different host port (for example `-p 8080:5000`).
-- If building fails due to Docker daemon issues, ensure Docker is running:
-
-```bash
-sudo systemctl start docker
-sudo systemctl status docker
-```
-
-## Verification / Quick smoke test
-
-1. Build and run the container as shown above.
-2. Open the main endpoint in the browser or run:
-
-```bash
-curl -s http://127.0.0.1:8080/ | jq .
-```
-
-You should receive JSON similar to the example in the lab specification.
+- **Port already in use** → set `PORT` or use `docker run -p 8080:5000`.
+- **Docker daemon unavailable** → `sudo systemctl start docker`.
+- **CI push skipped** → workflow only pushes on `main`/`master` (or tags); ensure secrets are configured.
