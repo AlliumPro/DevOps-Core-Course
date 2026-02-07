@@ -54,7 +54,7 @@ jobs:
         run: pytest --maxfail=1 -q
 
       - name: Snyk dependency scan
-        if: secrets.SNYK_TOKEN != ''
+        if: ${{ secrets.SNYK_TOKEN != '' }}
         uses: snyk/actions/python@master
         with:
           command: test
@@ -107,7 +107,7 @@ jobs:
             ${{ env.IMAGE }}:latest
 
       - name: Snyk scan (optional)
-        if: secrets.SNYK_TOKEN != ''
+        if: ${{ secrets.SNYK_TOKEN != '' }}
         uses: snyk/actions@master
         with:
           args: test --severity-threshold=high
