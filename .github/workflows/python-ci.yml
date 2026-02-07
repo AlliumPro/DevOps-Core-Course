@@ -67,6 +67,7 @@ jobs:
             --package-manager=pip
             --skip-unresolved
             --severity-threshold=high
+        timeout-minutes: 5
         env:
           SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
 
@@ -118,13 +119,14 @@ jobs:
 
       - name: Snyk scan (optional)
         if: ${{ env.SNYK_TOKEN != '' }}
-        uses: snyk/actions@master
+        uses: snyk/actions/python@master
         with:
+          command: test
           args: >-
-            test
             --file=app_python/requirements.txt
             --package-manager=pip
             --skip-unresolved
             --severity-threshold=high
+        timeout-minutes: 5
         env:
           SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
