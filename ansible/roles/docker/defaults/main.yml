@@ -1,0 +1,7 @@
+docker_users:
+  - devops
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - python3-docker
