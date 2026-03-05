@@ -1,7 +1,7 @@
 ---
 - name: Deploy application
   hosts: webservers
-  become: true
+  become: false
   roles:
     - role: web_app
       tags:

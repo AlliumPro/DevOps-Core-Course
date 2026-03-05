@@ -1,4 +1,3 @@
 ---
-# web_app requires Docker engine and compose plugin before deployment
-dependencies:
-  - role: docker
+# Docker is provisioned by playbooks/provision.yml; web_app deploy assumes Docker is already present.
+dependencies: []

@@ -5,7 +5,6 @@
     - web_app_wipe
 
 - name: Deploy web application with Docker Compose
-  become: true
   tags:
     - app_deploy
     - compose
@@ -22,16 +21,16 @@
       ansible.builtin.file:
         path: "{{ web_app_compose_project_dir }}"
         state: directory
-        owner: root
-        group: root
+        owner: devops
+        group: devops
         mode: "0755"
 
     - name: Render docker-compose configuration
       ansible.builtin.template:
         src: docker-compose.yml.j2
         dest: "{{ web_app_compose_project_dir }}/docker-compose.yml"
-        owner: root
-        group: root
+        owner: devops
+        group: devops
         mode: "0644"
       notify: restart web app stack
 

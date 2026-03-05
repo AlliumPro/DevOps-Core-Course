@@ -1,6 +1,5 @@
 ---
 - name: Restart web app stack
-  become: true
   community.docker.docker_compose_v2:
     project_src: "{{ web_app_compose_project_dir }}"
     state: present
