@@ -20,9 +20,9 @@
             state: present
 
       rescue:
-        - name: Recover apt metadata with fix-missing
-          ansible.builtin.command: apt-get update --fix-missing
-          changed_when: false
+        - name: Recover apt metadata after cache failure
+          ansible.builtin.apt:
+            update_cache: true
 
         - name: Retry apt cache update after recovery
           ansible.builtin.apt:
@@ -38,7 +38,7 @@
     - name: Set timezone
       become: true
       community.general.timezone:
-        name: "{{ timezone }}"
+        name: "{{ common_timezone }}"
       tags:
         - packages
 

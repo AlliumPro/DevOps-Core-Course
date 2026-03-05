@@ -20,7 +20,7 @@
 
     - name: Create application directory
       ansible.builtin.file:
-        path: "{{ compose_project_dir }}"
+        path: "{{ web_app_compose_project_dir }}"
         state: directory
         owner: root
         group: root
@@ -29,7 +29,7 @@
     - name: Render docker-compose configuration
       ansible.builtin.template:
         src: docker-compose.yml.j2
-        dest: "{{ compose_project_dir }}/docker-compose.yml"
+        dest: "{{ web_app_compose_project_dir }}/docker-compose.yml"
         owner: root
         group: root
         mode: "0644"
@@ -37,23 +37,22 @@
 
     - name: Deploy stack with Docker Compose v2
       community.docker.docker_compose_v2:
-        project_src: "{{ compose_project_dir }}"
+        project_src: "{{ web_app_compose_project_dir }}"
         state: present
         pull: always
 
     - name: Wait for application port
       ansible.builtin.wait_for:
-        port: "{{ app_port }}"
+        port: "{{ web_app_port }}"
         delay: 2
-        timeout: "{{ app_wait_timeout }}"
+        timeout: "{{ web_app_wait_timeout }}"
 
     - name: Verify health endpoint
       ansible.builtin.uri:
-        url: "http://127.0.0.1:{{ app_port }}{{ app_health_path }}"
+        url: "http://127.0.0.1:{{ web_app_port }}{{ web_app_health_path }}"
         status_code: 200
 
   rescue:
     - name: Show deployment failure hint
       ansible.builtin.debug:
-        msg: "Docker Compose deployment failed for {{ app_name }}. Check compose logs on target host."
-
+        msg: "Docker Compose deployment failed for {{ web_app_name }}. Check compose logs on target host."

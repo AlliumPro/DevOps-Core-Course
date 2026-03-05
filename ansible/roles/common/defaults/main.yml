@@ -6,4 +6,4 @@ common_packages:
   - htop
 common_users:
   - devops
-timezone: "Europe/Moscow"
+common_timezone: "Europe/Moscow"

@@ -5,24 +5,29 @@
   tags:
     - web_app_wipe
   block:
+    - name: Check if compose file exists
+      ansible.builtin.stat:
+        path: "{{ web_app_compose_project_dir }}/docker-compose.yml"
+      register: web_app_compose_file
+
     # stop and remove compose-managed containers
     - name: Stop and remove compose stack
       community.docker.docker_compose_v2:
-        project_src: "{{ compose_project_dir }}"
+        project_src: "{{ web_app_compose_project_dir }}"
         state: absent
         remove_images: "{{ 'local' if (web_app_wipe_remove_images | bool) else omit }}"
-      ignore_errors: true
+      when: web_app_compose_file.stat.exists
 
     - name: Remove docker-compose file
       ansible.builtin.file:
-        path: "{{ compose_project_dir }}/docker-compose.yml"
+        path: "{{ web_app_compose_project_dir }}/docker-compose.yml"
         state: absent
 
     - name: Remove application directory
       ansible.builtin.file:
-        path: "{{ compose_project_dir }}"
+        path: "{{ web_app_compose_project_dir }}"
         state: absent
 
     - name: Log wipe completion
       ansible.builtin.debug:
-        msg: "Application {{ app_name }} wiped successfully"
+        msg: "Application {{ web_app_name }} wiped successfully"
