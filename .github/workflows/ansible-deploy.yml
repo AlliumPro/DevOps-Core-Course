@@ -66,9 +66,21 @@ jobs:
       - name: Configure SSH access
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          KEY='${{ secrets.SSH_PRIVATE_KEY }}'
+          if printf '%s' "$KEY" | grep -q '\\n'; then
+            printf '%b' "$KEY" > ~/.ssh/id_ed25519
+          else
+            printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          fi
+          tr -d '\r' < ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.clean
+          mv ~/.ssh/id_ed25519.clean ~/.ssh/id_ed25519
+          if ! grep -Eq 'BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY' ~/.ssh/id_ed25519; then
+            echo "SSH_PRIVATE_KEY has invalid format" >&2
+            exit 1
+          fi
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
       - name: Run deployment playbook
         env:
