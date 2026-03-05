@@ -1,0 +1,16 @@
+---
+# Docker Hub credentials: keep this file vaulted in real usage.
+# Example:
+# ansible-vault edit group_vars/all.yml --vault-password-file .vault_pass_tmp
+
+dockerhub_username: "{{ lookup('ansible.builtin.env', 'DOCKERHUB_USERNAME') | default('alliumpro', true) }}"
+dockerhub_password: "{{ lookup('ansible.builtin.env', 'DOCKERHUB_TOKEN') | default('', true) }}"
+
+# App runtime environment (safe defaults)
+app_env:
+  APP_ENV: production
+  APP_LOG_LEVEL: info
+  APP_SECRET_KEY: "{{ app_secret_key }}"
+
+# Example secret consumed by app via compose template (replace with vault-encrypted value)
+app_secret_key: "change-me-with-ansible-vault"

@@ -1,0 +1,4 @@
+---
+# web_app requires Docker engine and compose plugin before deployment
+dependencies:
+  - role: docker

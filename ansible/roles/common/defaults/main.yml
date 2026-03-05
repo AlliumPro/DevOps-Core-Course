@@ -4,4 +4,6 @@ common_packages:
   - curl
   - vim
   - htop
+common_users:
+  - devops
 timezone: "Europe/Moscow"
