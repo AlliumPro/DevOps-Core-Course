@@ -2,7 +2,7 @@ name: Ansible Deploy (Python App)
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, lab06]
     paths:
       - 'ansible/vars/app_python.yml'
       - 'ansible/playbooks/provision.yml'
@@ -14,7 +14,7 @@ on:
       - '.github/workflows/ansible-deploy.yml'
       - '!ansible/docs/**'
   pull_request:
-    branches: [main, master]
+    branches: [main, master, lab06]
     paths:
       - 'ansible/**'
       - '.github/workflows/ansible-deploy.yml'

@@ -1,6 +1,6 @@
 # Lab 06 — Advanced Ansible & CI/CD Report
 
-[![Ansible Deploy](https://github.com/AlliumPro/DevOps-Core-Course/actions/workflows/ansible-deploy.yml/badge.svg)](https://github.com/AlliumPro/DevOps-Core-Course/actions/workflows/ansible-deploy.yml)
+[![Ansible Deploy](https://github.com/AlliumPro/DevOps-Core-Course/actions/workflows/ansible-deploy.yml/badge.svg?branch=lab06)](https://github.com/AlliumPro/DevOps-Core-Course/actions/workflows/ansible-deploy.yml?query=branch%3Alab06)
 
 > Refactored Lab 5 automation with blocks/tags, migrated app deployment to Docker Compose, implemented safe wipe logic, and added GitHub Actions deployment pipeline.
 
