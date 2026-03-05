@@ -1,0 +1,7 @@
+common_packages:
+  - python3-pip
+  - git
+  - curl
+  - vim
+  - htop
+timezone: "Europe/Moscow"

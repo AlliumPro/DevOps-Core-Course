@@ -1,0 +1,11 @@
+app_name: devops-app
+app_container_name: "{{ app_name }}"
+app_port: 5000
+app_wait_timeout: 60
+app_restart_policy: unless-stopped
+app_force_recreate: true
+app_env: {}
+app_health_path: /health
+docker_image_tag: latest
+docker_image: "{{ dockerhub_username }}/{{ app_name }}"
+
