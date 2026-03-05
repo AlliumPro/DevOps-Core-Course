@@ -64,9 +64,24 @@ jobs:
           ansible-galaxy collection install community.docker community.general
 
       - name: Configure SSH access
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          KEY='${{ secrets.SSH_PRIVATE_KEY }}'
+          KEY="${SSH_PRIVATE_KEY:-}"
+          if [ -z "$KEY" ]; then
+            echo "SSH_PRIVATE_KEY secret is empty" >&2
+            exit 1
+          fi
+
+          # Detect public key accidentally pasted into secret.
+          if printf '%s' "$KEY" | grep -qE '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-) '; then
+            echo "SSH_PRIVATE_KEY looks like a public key. Paste private key block (BEGIN ... PRIVATE KEY)." >&2
+            exit 1
+          fi
+
+          # Support both escaped newlines (\\n) and regular multiline secrets.
           if printf '%s' "$KEY" | grep -q '\\n'; then
             printf '%b' "$KEY" > ~/.ssh/id_ed25519
           else
@@ -74,10 +89,17 @@ jobs:
           fi
           tr -d '\r' < ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.clean
           mv ~/.ssh/id_ed25519.clean ~/.ssh/id_ed25519
+
+          # Fallback: support base64-encoded private key secret.
           if ! grep -Eq 'BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY' ~/.ssh/id_ed25519; then
-            echo "SSH_PRIVATE_KEY has invalid format" >&2
-            exit 1
+            if printf '%s' "$KEY" | base64 -d > ~/.ssh/id_ed25519 2>/dev/null && grep -Eq 'BEGIN (OPENSSH|RSA|EC|DSA) PRIVATE KEY' ~/.ssh/id_ed25519; then
+              :
+            else
+              echo "SSH_PRIVATE_KEY has invalid format. Provide raw private key block or base64-encoded private key." >&2
+              exit 1
+            fi
           fi
+
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.VM_HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
