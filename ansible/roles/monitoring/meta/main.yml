@@ -1,0 +1,4 @@
+---
+# monitoring deploy requires docker engine and compose plugin
+# installed by the docker role in provision playbook.
+dependencies: []

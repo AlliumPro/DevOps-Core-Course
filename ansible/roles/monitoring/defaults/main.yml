@@ -1,0 +1,16 @@
+---
+monitoring_project_dir: "/home/devops/monitoring"
+monitoring_loki_version: "3.0.0"
+monitoring_promtail_version: "3.0.0"
+monitoring_grafana_version: "12.3.1"
+monitoring_loki_port: 3100
+monitoring_promtail_port: 9080
+monitoring_grafana_port: 3000
+monitoring_loki_retention: "168h"
+monitoring_loki_schema: "v13"
+monitoring_app_name: "devops-python"
+monitoring_app_image: "alliumpro/devops-app:lab07"
+monitoring_app_port: 8000
+monitoring_app_internal_port: 5000
+monitoring_grafana_admin_user: "admin"
+monitoring_grafana_admin_password: "change-me"
