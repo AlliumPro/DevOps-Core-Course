@@ -149,6 +149,16 @@ Example ingested log (from Loki query result):
 Grafana data source:
 - `Loki` (`http://loki:3100`)
 
+Dashboard is provisioned from file:
+- `monitoring/grafana/dashboards/lab07-logging.json`
+- provider: `monitoring/grafana/provisioning/dashboards/dashboards.yml`
+
+Panels included (as required):
+1. Logs Table
+2. Request Rate by App
+3. Error Logs
+4. Log Level Distribution
+
 Queries used:
 1. All app logs:
 ```logql
@@ -223,6 +233,13 @@ curl "http://127.0.0.1:3100/loki/api/v1/query_range?query=%7Bapp%3D%22devops-pyt
 ```
 
 Result contained JSON log entries from `app-python` container and request log lines.
+
+### 7.4 Screenshots to attach before submission
+
+1. Grafana Explore with query `{app="devops-python"}` and visible logs.
+2. Grafana dashboard `Lab07 - Application Logging` with all 4 panels visible.
+3. `docker-compose ps` output showing `loki` and `grafana` healthy.
+4. Grafana login page proving anonymous access is disabled.
 
 ---
 

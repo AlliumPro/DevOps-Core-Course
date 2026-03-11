@@ -11,6 +11,8 @@
     - "{{ monitoring_project_dir }}/loki"
     - "{{ monitoring_project_dir }}/promtail"
     - "{{ monitoring_project_dir }}/grafana/provisioning/datasources"
+    - "{{ monitoring_project_dir }}/grafana/provisioning/dashboards"
+    - "{{ monitoring_project_dir }}/grafana/dashboards"
 
 - name: Render Loki config
   ansible.builtin.template:
@@ -32,6 +34,22 @@
   ansible.builtin.template:
     src: grafana-datasource.yml.j2
     dest: "{{ monitoring_project_dir }}/grafana/provisioning/datasources/loki.yml"
+    owner: devops
+    group: devops
+    mode: "0644"
+
+- name: Render Grafana dashboards provider
+  ansible.builtin.template:
+    src: grafana-dashboards-provider.yml.j2
+    dest: "{{ monitoring_project_dir }}/grafana/provisioning/dashboards/dashboards.yml"
+    owner: devops
+    group: devops
+    mode: "0644"
+
+- name: Render Lab07 dashboard definition
+  ansible.builtin.template:
+    src: grafana-lab07-dashboard.json.j2
+    dest: "{{ monitoring_project_dir }}/grafana/dashboards/lab07-logging.json"
     owner: devops
     group: devops
     mode: "0644"
