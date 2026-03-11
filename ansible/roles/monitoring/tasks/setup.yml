@@ -1,0 +1,45 @@
+---
+- name: Create monitoring directory structure
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: devops
+    group: devops
+    mode: "0755"
+  loop:
+    - "{{ monitoring_project_dir }}"
+    - "{{ monitoring_project_dir }}/loki"
+    - "{{ monitoring_project_dir }}/promtail"
+    - "{{ monitoring_project_dir }}/grafana/provisioning/datasources"
+
+- name: Render Loki config
+  ansible.builtin.template:
+    src: loki-config.yml.j2
+    dest: "{{ monitoring_project_dir }}/loki/config.yml"
+    owner: devops
+    group: devops
+    mode: "0644"
+
+- name: Render Promtail config
+  ansible.builtin.template:
+    src: promtail-config.yml.j2
+    dest: "{{ monitoring_project_dir }}/promtail/config.yml"
+    owner: devops
+    group: devops
+    mode: "0644"
+
+- name: Render Grafana datasource config
+  ansible.builtin.template:
+    src: grafana-datasource.yml.j2
+    dest: "{{ monitoring_project_dir }}/grafana/provisioning/datasources/loki.yml"
+    owner: devops
+    group: devops
+    mode: "0644"
+
+- name: Render monitoring compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ monitoring_project_dir }}/docker-compose.yml"
+    owner: devops
+    group: devops
+    mode: "0644"

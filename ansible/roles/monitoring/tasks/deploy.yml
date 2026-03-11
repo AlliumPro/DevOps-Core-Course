@@ -1,0 +1,26 @@
+---
+- name: Deploy Loki stack via compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_project_dir }}"
+    state: present
+    pull: always
+
+- name: Wait for Loki readiness
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ monitoring_loki_port }}/ready"
+    status_code: 200
+    timeout: 30
+  register: monitoring_loki_ready
+  until: monitoring_loki_ready.status == 200
+  retries: 10
+  delay: 5
+
+- name: Wait for Grafana readiness
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ monitoring_grafana_port }}/api/health"
+    status_code: 200
+    timeout: 30
+  register: monitoring_grafana_ready
+  until: monitoring_grafana_ready.status == 200
+  retries: 10
+  delay: 5
