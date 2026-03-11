@@ -1,7 +1,10 @@
 ---
-- name: Deploy application
+- name: Deploy Python application
   hosts: webservers
   become: false
+  vars_files:
+    - ../vars/app_python.yml
+
   roles:
     - role: web_app
       tags:

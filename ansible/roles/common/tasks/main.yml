@@ -1,14 +1,57 @@
 ---
-- name: Update apt cache
-  ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: 3600
+- name: Configure common host baseline
+  tags:
+    - common
+  block:
+    # packages block: grouped installation + error handling
+    - name: Install baseline packages
+      become: true
+      tags:
+        - packages
+      block:
+        - name: Update apt cache
+          ansible.builtin.apt:
+            update_cache: true
+            cache_valid_time: 3600
 
-- name: Install common packages
-  ansible.builtin.apt:
-    name: "{{ common_packages }}"
-    state: present
+        - name: Install common packages
+          ansible.builtin.apt:
+            name: "{{ common_packages }}"
+            state: present
 
-- name: Set timezone
-  community.general.timezone:
-    name: "{{ timezone }}"
+      rescue:
+        - name: Recover apt metadata after cache failure
+          ansible.builtin.apt:
+            update_cache: true
+
+        - name: Retry apt cache update after recovery
+          ansible.builtin.apt:
+            update_cache: true
+
+      always:
+        - name: Write packages block completion marker
+          ansible.builtin.copy:
+            dest: /tmp/ansible-common-packages.log
+            content: "common packages block completed\n"
+            mode: "0644"
+
+    - name: Set timezone
+      become: true
+      community.general.timezone:
+        name: "{{ common_timezone }}"
+      tags:
+        - packages
+
+    # users block: centralized user management
+    - name: Ensure baseline users exist
+      become: true
+      tags:
+        - users
+      block:
+        - name: Ensure local users are present
+          ansible.builtin.user:
+            name: "{{ item }}"
+            state: present
+            create_home: true
+            shell: /bin/bash
+          loop: "{{ common_users }}"

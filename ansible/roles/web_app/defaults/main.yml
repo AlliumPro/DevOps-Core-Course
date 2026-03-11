@@ -1,0 +1,23 @@
+---
+# Web application identity and image
+web_app_name: devops-app
+web_app_docker_image_tag: latest
+web_app_docker_image: "{{ dockerhub_username }}/{{ web_app_name }}"
+
+# Runtime ports and health checks
+web_app_port: 5000
+web_app_internal_port: 5000
+web_app_wait_timeout: 60
+web_app_health_path: /health
+
+# Compose project configuration
+web_app_compose_project_dir: "/home/devops/{{ web_app_name }}"
+web_app_docker_compose_version: "3.8"
+web_app_restart_policy: unless-stopped
+web_app_env: {}
+
+# Wipe logic safety controls
+# Wipe only: ansible-playbook playbooks/deploy.yml -e "web_app_wipe=true" --tags web_app_wipe
+# Clean install: ansible-playbook playbooks/deploy.yml -e "web_app_wipe=true"
+web_app_wipe: false
+web_app_wipe_remove_images: false
