@@ -234,12 +234,25 @@ curl "http://127.0.0.1:3100/loki/api/v1/query_range?query=%7Bapp%3D%22devops-pyt
 
 Result contained JSON log entries from `app-python` container and request log lines.
 
-### 7.4 Screenshots to attach before submission
+### 7.4 Attached screenshots
 
-1. Grafana Explore with query `{app="devops-python"}` and visible logs.
-2. Grafana dashboard `Lab07 - Application Logging` with all 4 panels visible.
-3. `docker-compose ps` output showing `loki` and `grafana` healthy.
-4. Grafana login page proving anonymous access is disabled.
+1. Grafana Explore with query `{app="devops-python"}` and visible logs:
+
+![Grafana Explore with Loki logs](../../app_python/docs/screenshots/15-grafana-loki.png)
+
+2. Grafana dashboard `Lab07 - Application Logging` with all 4 required panels:
+
+![Grafana dashboard with 4 panels](../../app_python/docs/screenshots/16-grafana-dashboards.png)
+
+3. `docker-compose ps` output showing `loki` and `grafana` healthy:
+
+![Docker containers and health status](../../app_python/docs/screenshots/17-docker-containers.png)
+
+4. Server-side monitoring stack configuration evidence:
+
+![Server monitoring configuration](../../app_python/docs/screenshots/10-server-configuration.png)
+
+Note: if your instructor strictly requires the Grafana login screen (to explicitly prove anonymous access is disabled), add one more screenshot of the login page and place it in the same screenshots directory.
 
 ---
 
