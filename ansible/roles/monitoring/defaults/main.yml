@@ -3,14 +3,33 @@ monitoring_project_dir: "/home/devops/monitoring"
 monitoring_loki_version: "3.0.0"
 monitoring_promtail_version: "3.0.0"
 monitoring_grafana_version: "12.3.1"
+monitoring_prometheus_version: "3.9.0"
 monitoring_loki_port: 3100
 monitoring_promtail_port: 9080
 monitoring_grafana_port: 3000
+monitoring_prometheus_port: 9090
 monitoring_loki_retention: "168h"
 monitoring_loki_schema: "v13"
+monitoring_prometheus_retention_days: 15
+monitoring_prometheus_retention_size: "10GB"
+monitoring_prometheus_scrape_interval: "15s"
 monitoring_app_name: "devops-python"
-monitoring_app_image: "alliumpro/devops-app:lab07"
+monitoring_app_image: "alliumpro/devops-app:lab08"
 monitoring_app_port: 8000
 monitoring_app_internal_port: 5000
 monitoring_grafana_admin_user: "admin"
 monitoring_grafana_admin_password: "change-me"
+monitoring_app_memory_limit: "256M"
+
+monitoring_prometheus_targets:
+  - job: "prometheus"
+    targets: ["localhost:9090"]
+  - job: "loki"
+    targets: ["loki:3100"]
+    path: "/metrics"
+  - job: "grafana"
+    targets: ["grafana:3000"]
+    path: "/metrics"
+  - job: "app"
+    targets: ["app-python:5000"]
+    path: "/metrics"

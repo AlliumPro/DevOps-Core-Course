@@ -51,3 +51,24 @@ def test_404_returns_json(client):
     assert resp.status_code == 404
     data = resp.get_json()
     assert data.get("error") == "Not Found"
+
+
+def test_metrics_endpoint_exposes_prometheus_text(client):
+    # Generate traffic so counters/histograms have samples.
+    client.get("/")
+    client.get("/health")
+    client.get("/no-such-path")
+
+    resp = client.get("/metrics")
+    assert resp.status_code == 200
+    assert "text/plain" in resp.headers.get("Content-Type", "")
+
+    payload = resp.get_data(as_text=True)
+    assert "# HELP http_requests_total" in payload
+    assert "# TYPE http_requests_total counter" in payload
+    assert "# HELP http_request_duration_seconds" in payload
+    assert "# TYPE http_request_duration_seconds histogram" in payload
+    assert "# HELP http_requests_in_progress" in payload
+    assert "# TYPE http_requests_in_progress gauge" in payload
+    assert "devops_info_endpoint_calls_total" in payload
+    assert "devops_info_system_collection_seconds" in payload

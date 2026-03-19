@@ -10,6 +10,7 @@
     - "{{ monitoring_project_dir }}"
     - "{{ monitoring_project_dir }}/loki"
     - "{{ monitoring_project_dir }}/promtail"
+    - "{{ monitoring_project_dir }}/prometheus"
     - "{{ monitoring_project_dir }}/grafana/provisioning/datasources"
     - "{{ monitoring_project_dir }}/grafana/provisioning/dashboards"
     - "{{ monitoring_project_dir }}/grafana/dashboards"
@@ -30,10 +31,18 @@
     group: devops
     mode: "0644"
 
+- name: Render Prometheus config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ monitoring_project_dir }}/prometheus/prometheus.yml"
+    owner: devops
+    group: devops
+    mode: "0644"
+
 - name: Render Grafana datasource config
   ansible.builtin.template:
     src: grafana-datasource.yml.j2
-    dest: "{{ monitoring_project_dir }}/grafana/provisioning/datasources/loki.yml"
+    dest: "{{ monitoring_project_dir }}/grafana/provisioning/datasources/datasources.yml"
     owner: devops
     group: devops
     mode: "0644"
@@ -50,6 +59,14 @@
   ansible.builtin.template:
     src: grafana-lab07-dashboard.json.j2
     dest: "{{ monitoring_project_dir }}/grafana/dashboards/lab07-logging.json"
+    owner: devops
+    group: devops
+    mode: "0644"
+
+- name: Render Lab08 dashboard definition
+  ansible.builtin.template:
+    src: grafana-lab08-dashboard.json.j2
+    dest: "{{ monitoring_project_dir }}/grafana/dashboards/lab08-metrics.json"
     owner: devops
     group: devops
     mode: "0644"
