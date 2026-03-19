@@ -137,7 +137,7 @@ services:
       - logging
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:{{ monitoring_app_internal_port }}/health || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:{{ monitoring_app_internal_port }}/health')\""]
       interval: 10s
       timeout: 5s
       retries: 5

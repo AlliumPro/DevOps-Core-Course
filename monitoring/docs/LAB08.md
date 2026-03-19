@@ -2,7 +2,7 @@
 
 [![Ansible Deploy](https://github.com/AlliumPro/DevOps-Core-Course/actions/workflows/ansible-deploy.yml/badge.svg?branch=lab06)](https://github.com/AlliumPro/DevOps-Core-Course/actions/workflows/ansible-deploy.yml?query=branch%3Alab06)
 
-> Implemented full application metrics instrumentation with `prometheus_client`, deployed Prometheus 3.9 with production-oriented settings, integrated Grafana metrics dashboards, and extended Ansible automation to deploy the complete observability stack (Loki + Promtail + Prometheus + Grafana).
+> This lab was implemented and validated on the course VM: the Flask app now exposes Prometheus metrics, Prometheus scrapes app and platform targets, and Grafana visualizes RED-style metrics in a custom dashboard.
 
 ---
 
@@ -146,8 +146,7 @@ Configured jobs:
 ### 4.1 Data sources
 
 Files:
-- `monitoring/grafana/provisioning/datasources/loki.yml`
-- `monitoring/grafana/provisioning/datasources/prometheus.yml`
+- `monitoring/grafana/provisioning/datasources/datasources.yml`
 
 Provisioned data sources:
 - Loki (`uid: loki`)
@@ -265,8 +264,8 @@ Result:
 Stack up:
 ```bash
 cd monitoring
-docker compose up -d
-docker compose ps
+~/.local/bin/docker-compose up -d
+~/.local/bin/docker-compose ps
 ```
 
 Prometheus targets:
@@ -286,13 +285,25 @@ Expected metric families:
 - `devops_info_endpoint_calls_total`
 - `devops_info_system_collection_seconds`
 
-### 7.3 Screenshots to attach
+Observed from the attached screenshots:
+- Prometheus target health shows all 4 configured jobs in `UP` state (`app`, `grafana`, `loki`, `prometheus`).
+- Query `up` returns four active series, one per monitored job.
+- Grafana `Lab08 - Application Metrics` dashboard is populated with live request/latency data.
+- Error panel currently shows no data, which is expected because no 5xx traffic was generated during this capture window.
 
-1. Prometheus `/targets` page with all jobs UP
-2. Prometheus graph tab with query `up`
-3. Grafana dashboard `Lab08 - Application Metrics` (all 7 panels visible)
-4. `/metrics` endpoint output sample
-5. `docker compose ps` showing healthy services
+### 7.3 Attached screenshots
+
+1. Grafana dashboard `Lab08 - Application Metrics`:
+
+![Lab08 Grafana dashboard](../../app_python/docs/screenshots/18-grafana.png)
+
+2. Prometheus Targets page with all jobs in `UP` state:
+
+![Prometheus targets up](../../app_python/docs/screenshots/19-prometheus.png)
+
+3. Prometheus query result for `up`:
+
+![Prometheus up query](../../app_python/docs/screenshots/20-query.png)
 
 ---
 
@@ -368,10 +379,10 @@ ansible-playbook ansible/playbooks/deploy-monitoring.yml -i ansible/inventory/ho
 
 ## 11. Summary
 
-Lab 08 is fully implemented end-to-end:
+Lab 08 deliverables are completed and validated:
 - Flask app instrumented with Prometheus metrics and `/metrics` endpoint
 - Prometheus added and scraping app + platform targets
 - Grafana integrated with Prometheus and custom metrics dashboard
 - Production hardening applied (health checks, limits, retention, persistence)
 - Bonus Ansible automation completed for full observability stack
-- Report prepared with architecture, queries, validation steps, and evidence checklist
+- Report prepared with architecture, PromQL examples, and screenshot evidence
