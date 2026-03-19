@@ -1,1 +1,13 @@
 test
+
+# Environment secrets
+.env
+**/.env
+*.env
+
+# Local vault password helper
+.vault_pass_tmp
+
+# Python cache
+__pycache__/
+*.pyc

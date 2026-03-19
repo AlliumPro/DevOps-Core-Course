@@ -1,0 +1,9 @@
+---
+- name: Deploy monitoring stack
+  hosts: webservers
+  become: false
+  roles:
+    - role: monitoring
+      tags:
+        - monitoring
+        - logging
