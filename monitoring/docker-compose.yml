@@ -1,6 +1,36 @@
 version: "3.8"
 
 services:
+  prometheus:
+    image: prom/prometheus:v3.9.0
+    container_name: prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.retention.size=10GB"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
   loki:
     image: grafana/loki:3.0.0
     container_name: loki
@@ -63,6 +93,7 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_METRICS_ENABLED: "true"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -70,6 +101,8 @@ services:
     networks:
       - logging
     depends_on:
+      prometheus:
+        condition: service_healthy
       loki:
         condition: service_healthy
     healthcheck:
@@ -82,14 +115,14 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 1G
+          cpus: "0.50"
+          memory: 512M
         reservations:
           cpus: "0.25"
           memory: 256M
 
   app-python:
-    image: alliumpro/devops-app:lab07
+    image: alliumpro/devops-app:lab08
     build:
       context: ../app_python
       dockerfile: Dockerfile
@@ -106,16 +139,23 @@ services:
     networks:
       - logging
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     deploy:
       resources:
         limits:
           cpus: "0.50"
-          memory: 512M
+          memory: 256M
         reservations:
           cpus: "0.10"
           memory: 128M
 
 volumes:
+  prometheus-data:
   loki-data:
   grafana-data:
 

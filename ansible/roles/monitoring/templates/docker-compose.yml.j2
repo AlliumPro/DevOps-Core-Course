@@ -1,6 +1,36 @@
 version: "3.8"
 
 services:
+  prometheus:
+    image: prom/prometheus:{{ monitoring_prometheus_version }}
+    container_name: prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time={{ monitoring_prometheus_retention_days }}d"
+      - "--storage.tsdb.retention.size={{ monitoring_prometheus_retention_size }}"
+    ports:
+      - "{{ monitoring_prometheus_port }}:{{ monitoring_prometheus_port }}"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - logging
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:{{ monitoring_prometheus_port }}/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
   loki:
     image: grafana/loki:{{ monitoring_loki_version }}
     container_name: loki
@@ -19,6 +49,14 @@ services:
       retries: 10
       start_period: 15s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
   promtail:
     image: grafana/promtail:{{ monitoring_promtail_version }}
@@ -36,6 +74,14 @@ services:
       loki:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
 
   grafana:
     image: grafana/grafana:{{ monitoring_grafana_version }}
@@ -47,6 +93,7 @@ services:
       GF_SECURITY_ADMIN_USER: "{{ monitoring_grafana_admin_user }}"
       GF_SECURITY_ADMIN_PASSWORD: "{{ monitoring_grafana_admin_password }}"
       GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_METRICS_ENABLED: "true"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -54,6 +101,8 @@ services:
     networks:
       - logging
     depends_on:
+      prometheus:
+        condition: service_healthy
       loki:
         condition: service_healthy
     healthcheck:
@@ -63,6 +112,14 @@ services:
       retries: 10
       start_period: 20s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
   app-python:
     image: {{ monitoring_app_image }}
@@ -79,8 +136,23 @@ services:
     networks:
       - logging
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:{{ monitoring_app_internal_port }}/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: "{{ monitoring_app_memory_limit }}"
+        reservations:
+          cpus: "0.10"
+          memory: 128M
 
 volumes:
+  prometheus-data:
   loki-data:
   grafana-data:
 

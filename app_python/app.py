@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from typing import Dict
 
 from flask import Flask, g, jsonify, request
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 
 
 APP_NAME = "devops-info-service"
@@ -69,6 +70,35 @@ logger = setup_logging()
 
 app = Flask(__name__)
 
+HTTP_REQUESTS_TOTAL = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "endpoint", "status_code"],
+)
+
+HTTP_REQUEST_DURATION_SECONDS = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ["method", "endpoint"],
+)
+
+HTTP_REQUESTS_IN_PROGRESS = Gauge(
+    "http_requests_in_progress",
+    "HTTP requests currently being processed",
+    ["method", "endpoint"],
+)
+
+DEVOPS_INFO_ENDPOINT_CALLS_TOTAL = Counter(
+    "devops_info_endpoint_calls_total",
+    "Total endpoint calls for the DevOps info service",
+    ["endpoint"],
+)
+
+DEVOPS_INFO_SYSTEM_COLLECTION_SECONDS = Histogram(
+    "devops_info_system_collection_seconds",
+    "System info collection duration in seconds",
+)
+
 # Configuration from environment
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", 5000))
@@ -76,6 +106,17 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 # Application start time (UTC)
 START_TIME = datetime.now(timezone.utc)
+
+
+def normalize_endpoint() -> str:
+    """Normalize endpoint labels to keep cardinality bounded."""
+    if request.url_rule and request.url_rule.rule:
+        endpoint = request.url_rule.rule
+    elif request.path in {"/", "/health", "/metrics"}:
+        endpoint = request.path
+    else:
+        endpoint = "/unknown"
+    return endpoint
 
 
 def get_uptime() -> Dict[str, object]:
@@ -133,6 +174,10 @@ def before_request_log() -> None:
     """Capture request start timing and emit ingress event."""
     g.request_start = time.perf_counter()
     g.request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    endpoint = normalize_endpoint()
+    g.metrics_endpoint = endpoint
+    g.metrics_method = request.method
+    HTTP_REQUESTS_IN_PROGRESS.labels(method=request.method, endpoint=endpoint).inc()
     info = get_request_info()
     logger.info(
         "request_started",
@@ -149,7 +194,19 @@ def before_request_log() -> None:
 def after_request_log(response):
     """Emit request completion event with latency and status code."""
     started = getattr(g, "request_start", time.perf_counter())
-    duration_ms = round((time.perf_counter() - started) * 1000, 2)
+    endpoint = getattr(g, "metrics_endpoint", normalize_endpoint())
+    method = getattr(g, "metrics_method", request.method)
+    duration_seconds = max(time.perf_counter() - started, 0.0)
+    duration_ms = round(duration_seconds * 1000, 2)
+
+    HTTP_REQUESTS_TOTAL.labels(
+        method=method,
+        endpoint=endpoint,
+        status_code=str(response.status_code),
+    ).inc()
+    HTTP_REQUEST_DURATION_SECONDS.labels(method=method, endpoint=endpoint).observe(duration_seconds)
+    HTTP_REQUESTS_IN_PROGRESS.labels(method=method, endpoint=endpoint).dec()
+
     logger.info(
         "request_completed",
         extra={
@@ -168,9 +225,12 @@ def after_request_log(response):
 def index():
     """Main endpoint returning service, system, runtime and request info."""
     logger.info("handle_index")
+    DEVOPS_INFO_ENDPOINT_CALLS_TOTAL.labels(endpoint="/").inc()
 
     uptime = get_uptime()
     now = datetime.now(timezone.utc).isoformat()
+    with DEVOPS_INFO_SYSTEM_COLLECTION_SECONDS.time():
+        system_info = get_system_info()
 
     payload = {
         "service": {
@@ -179,7 +239,7 @@ def index():
             "description": APP_DESCRIPTION,
             "framework": FRAMEWORK,
         },
-        "system": get_system_info(),
+        "system": system_info,
         "runtime": {
             "uptime_seconds": uptime["seconds"],
             "uptime_human": uptime["human"],
@@ -199,6 +259,7 @@ def index():
 @app.route("/health")
 def health():
     """Simple health endpoint suitable for liveness/readiness probes."""
+    DEVOPS_INFO_ENDPOINT_CALLS_TOTAL.labels(endpoint="/health").inc()
     uptime = get_uptime()
     timestamp = datetime.now(timezone.utc).isoformat()
     logger.info("health_check")
@@ -209,6 +270,13 @@ def health():
             "uptime_seconds": uptime["seconds"],
         }
     ), 200
+
+
+@app.route("/metrics")
+def metrics():
+    """Expose Prometheus metrics endpoint."""
+    DEVOPS_INFO_ENDPOINT_CALLS_TOTAL.labels(endpoint="/metrics").inc()
+    return generate_latest(), 200, {"Content-Type": CONTENT_TYPE_LATEST}
 
 
 @app.errorhandler(404)
