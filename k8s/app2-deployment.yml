@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-app2
+  namespace: devops-lab9
+  labels:
+    app: devops-app2
+    tier: backend
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: devops-app2
+  template:
+    metadata:
+      labels:
+        app: devops-app2
+        tier: backend
+    spec:
+      containers:
+        - name: app2
+          image: hashicorp/http-echo:1.0.0
+          args:
+            - "-text=Hello from app2"
+          ports:
+            - containerPort: 5678
+              name: http
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
