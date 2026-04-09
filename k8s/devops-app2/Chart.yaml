@@ -1,0 +1,10 @@
+apiVersion: v2
+name: devops-app2
+description: Helm chart for secondary echo application used in ingress routing.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+dependencies:
+  - name: common-lib
+    version: 0.1.0
+    repository: "file://../common-lib"
