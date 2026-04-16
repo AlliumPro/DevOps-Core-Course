@@ -18,11 +18,28 @@ spec:
     metadata:
       labels:
         {{- include "devops-app.selectorLabels" . | nindent 8 }}
-      {{- with .Values.podAnnotations }}
+      {{- $hasPodAnnotations := gt (len .Values.podAnnotations) 0 }}
+      {{- if or $hasPodAnnotations .Values.vault.enabled }}
       annotations:
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.vault.enabled }}
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: {{ .Values.vault.role | quote }}
+        vault.hashicorp.com/agent-inject-secret-{{ .Values.vault.injectFile }}: {{ .Values.vault.secretPath | quote }}
+        vault.hashicorp.com/agent-inject-command-{{ .Values.vault.injectFile }}: {{ .Values.vault.agentInjectCommand | quote }}
+        vault.hashicorp.com/agent-inject-template-{{ .Values.vault.injectFile }}: |
+          {{`{{- with secret "`}}{{ .Values.vault.secretPath }}{{`" -}}`}}
+          DATABASE_USERNAME={{`{{ .Data.data.username }}`}}
+          DATABASE_PASSWORD={{`{{ .Data.data.password }}`}}
+          API_KEY={{`{{ .Data.data.api_key }}`}}
+          {{`{{- end }}`}}
+        {{- end }}
       {{- end }}
     spec:
+      serviceAccountName: {{ include "devops-app.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -32,7 +49,10 @@ spec:
               containerPort: {{ .Values.containerPort }}
               protocol: TCP
           env:
-            {{- toYaml .Values.env | nindent 12 }}
+            {{- include "devops-app.envVars" . | nindent 12 }}
+          envFrom:
+            - secretRef:
+                name: {{ include "devops-app.secretName" . }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
