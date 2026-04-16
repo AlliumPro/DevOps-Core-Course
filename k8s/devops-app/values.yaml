@@ -26,6 +26,27 @@ app:
   environment: kubernetes
   logLevel: INFO
 
+configMap:
+  file:
+    enabled: true
+    fileName: config.json
+    mountPath: /config
+  env:
+    enabled: true
+    data:
+      APP_PROFILE: development
+      FEATURE_VISITS_ENABLED: "true"
+      FEATURE_METRICS_ENABLED: "true"
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  mountPath: /data
+  fileName: visits
+  accessMode: ReadWriteOnce
+  size: 100Mi
+  storageClass: ""
+
 secret:
   create: true
   name: ""

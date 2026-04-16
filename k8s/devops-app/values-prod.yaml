@@ -1,7 +1,22 @@
 replicaCount: 3
 
 image:
-  tag: lab09
+  tag: lab12
+
+app:
+  environment: production
+
+configMap:
+  env:
+    data:
+      APP_PROFILE: production
+      FEATURE_VISITS_ENABLED: "true"
+      FEATURE_METRICS_ENABLED: "true"
+
+persistence:
+  enabled: true
+  size: 500Mi
+  storageClass: ""
 
 service:
   type: LoadBalancer

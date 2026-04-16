@@ -26,6 +26,22 @@
 {{- end }}
 {{- end }}
 
+{{- define "devops-app.configFileConfigMapName" -}}
+{{- printf "%s-config" (include "devops-app.fullname" .) -}}
+{{- end }}
+
+{{- define "devops-app.configEnvConfigMapName" -}}
+{{- printf "%s-env" (include "devops-app.fullname" .) -}}
+{{- end }}
+
+{{- define "devops-app.pvcName" -}}
+{{- if .Values.persistence.existingClaim }}
+{{- .Values.persistence.existingClaim -}}
+{{- else }}
+{{- printf "%s-data" (include "devops-app.fullname" .) -}}
+{{- end }}
+{{- end }}
+
 {{- define "devops-app.envVars" -}}
 - name: PORT
   value: {{ .Values.app.port | quote }}
@@ -33,4 +49,6 @@
   value: {{ .Values.app.environment | quote }}
 - name: LOG_LEVEL
   value: {{ .Values.app.logLevel | quote }}
+- name: VISITS_FILE
+  value: {{ printf "%s/%s" .Values.persistence.mountPath .Values.persistence.fileName | quote }}
 {{- end }}

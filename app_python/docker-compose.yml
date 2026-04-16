@@ -1,0 +1,15 @@
+services:
+  devops-app:
+    build:
+      context: .
+    image: devops-app:lab12-local
+    container_name: devops-app-lab12
+    environment:
+      HOST: 0.0.0.0
+      PORT: "5000"
+      LOG_LEVEL: INFO
+      VISITS_FILE: /data/visits
+    ports:
+      - "8080:5000"
+    volumes:
+      - ./data:/data

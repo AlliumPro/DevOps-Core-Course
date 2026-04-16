@@ -3,8 +3,9 @@
 Provides two endpoints:
  - GET /      -> service, system and runtime information
  - GET /health -> simple health check used by probes
+ - GET /visits -> current persisted visits counter
 
-Configuration via environment variables: HOST, PORT, DEBUG
+Configuration via environment variables: HOST, PORT, DEBUG, VISITS_FILE
 """
 from __future__ import annotations
 
@@ -16,6 +17,8 @@ import socket
 import time
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
+from threading import RLock
 from typing import Dict
 
 from flask import Flask, g, jsonify, request
@@ -106,17 +109,73 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 # Application start time (UTC)
 START_TIME = datetime.now(timezone.utc)
+VISITS_LOCK = RLock()
 
 
 def normalize_endpoint() -> str:
     """Normalize endpoint labels to keep cardinality bounded."""
     if request.url_rule and request.url_rule.rule:
         endpoint = request.url_rule.rule
-    elif request.path in {"/", "/health", "/metrics"}:
+    elif request.path in {"/", "/health", "/metrics", "/visits"}:
         endpoint = request.path
     else:
         endpoint = "/unknown"
     return endpoint
+
+
+def get_visits_file_path() -> Path:
+    """Resolve visits counter file path from app config or environment."""
+    configured = app.config.get("VISITS_FILE") or os.getenv("VISITS_FILE", "/data/visits")
+    return Path(str(configured))
+
+
+def _read_visits_unlocked(path: Path) -> int:
+    """Read visits counter from file without taking a lock."""
+    try:
+        raw_value = path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return 0
+    except OSError:
+        logger.exception("visits_read_failed")
+        return 0
+
+    if not raw_value:
+        return 0
+
+    try:
+        return max(int(raw_value), 0)
+    except ValueError:
+        logger.warning("visits_file_invalid_content", extra={"path": str(path), "raw": raw_value})
+        return 0
+
+
+def _write_visits_unlocked(path: Path, value: int) -> None:
+    """Write visits counter atomically without taking a lock."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_suffix(path.suffix + ".tmp")
+    temp_path.write_text(str(value), encoding="utf-8")
+    os.replace(temp_path, path)
+
+
+def read_visits_count() -> int:
+    """Read visits counter using a process lock for thread safety."""
+    path = get_visits_file_path()
+    with VISITS_LOCK:
+        return _read_visits_unlocked(path)
+
+
+def increment_visits_count() -> int:
+    """Increment visits counter and persist it to disk."""
+    path = get_visits_file_path()
+    with VISITS_LOCK:
+        current = _read_visits_unlocked(path)
+        new_value = current + 1
+        try:
+            _write_visits_unlocked(path, new_value)
+        except OSError:
+            logger.exception("visits_write_failed")
+            return current
+        return new_value
 
 
 def get_uptime() -> Dict[str, object]:
@@ -226,6 +285,7 @@ def index():
     """Main endpoint returning service, system, runtime and request info."""
     logger.info("handle_index")
     DEVOPS_INFO_ENDPOINT_CALLS_TOTAL.labels(endpoint="/").inc()
+    visits_count = increment_visits_count()
 
     uptime = get_uptime()
     now = datetime.now(timezone.utc).isoformat()
@@ -245,15 +305,31 @@ def index():
             "uptime_human": uptime["human"],
             "current_time": now,
             "timezone": "UTC",
+            "visits_count": visits_count,
         },
         "request": get_request_info(),
         "endpoints": [
             {"path": "/", "method": "GET", "description": "Service information"},
             {"path": "/health", "method": "GET", "description": "Health check"},
+            {"path": "/visits", "method": "GET", "description": "Current visits counter"},
         ],
     }
 
     return jsonify(payload)
+
+
+@app.route("/visits")
+def visits():
+    """Return current persisted visits counter without incrementing it."""
+    DEVOPS_INFO_ENDPOINT_CALLS_TOTAL.labels(endpoint="/visits").inc()
+    current_visits = read_visits_count()
+    return jsonify(
+        {
+            "visits": current_visits,
+            "visits_file": str(get_visits_file_path()),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    ), 200
 
 
 @app.route("/health")

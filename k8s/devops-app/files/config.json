@@ -1,0 +1,13 @@
+{
+  "applicationName": "devops-info-service",
+  "environment": "development",
+  "featureFlags": {
+    "visitsEndpoint": true,
+    "metricsEnabled": true,
+    "structuredLogging": true
+  },
+  "settings": {
+    "configVersion": "lab12",
+    "owner": "devops-core-course"
+  }
+}
