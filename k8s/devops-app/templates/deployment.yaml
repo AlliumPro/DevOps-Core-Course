@@ -19,10 +19,17 @@ spec:
       labels:
         {{- include "devops-app.selectorLabels" . | nindent 8 }}
       {{- $hasPodAnnotations := gt (len .Values.podAnnotations) 0 }}
-      {{- if or $hasPodAnnotations .Values.vault.enabled }}
+      {{- $hasConfigAnnotations := or .Values.configMap.file.enabled .Values.configMap.env.enabled }}
+      {{- if or $hasPodAnnotations .Values.vault.enabled $hasConfigAnnotations }}
       annotations:
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.configMap.file.enabled }}
+        checksum/config-file: {{ .Files.Get "files/config.json" | sha256sum }}
+        {{- end }}
+        {{- if .Values.configMap.env.enabled }}
+        checksum/config-env: {{ toYaml .Values.configMap.env.data | sha256sum }}
         {{- end }}
         {{- if .Values.vault.enabled }}
         vault.hashicorp.com/agent-inject: "true"
@@ -51,11 +58,40 @@ spec:
           env:
             {{- include "devops-app.envVars" . | nindent 12 }}
           envFrom:
+            {{- if .Values.configMap.env.enabled }}
+            - configMapRef:
+                name: {{ include "devops-app.configEnvConfigMapName" . }}
+            {{- end }}
+            {{- if or .Values.secret.create .Values.secret.name }}
             - secretRef:
                 name: {{ include "devops-app.secretName" . }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.configMap.file.enabled }}
+            - name: config-file-volume
+              mountPath: {{ .Values.configMap.file.mountPath }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.persistence.enabled }}
+            - name: data-volume
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- end }}
+      {{- if or .Values.configMap.file.enabled .Values.persistence.enabled }}
+      volumes:
+        {{- if .Values.configMap.file.enabled }}
+        - name: config-file-volume
+          configMap:
+            name: {{ include "devops-app.configFileConfigMapName" . }}
+        {{- end }}
+        {{- if .Values.persistence.enabled }}
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: {{ include "devops-app.pvcName" . }}
+        {{- end }}
+      {{- end }}

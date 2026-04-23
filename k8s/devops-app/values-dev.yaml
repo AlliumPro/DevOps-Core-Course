@@ -1,7 +1,22 @@
 replicaCount: 1
 
 image:
-  tag: lab09
+  tag: lab12
+
+app:
+  environment: development
+
+configMap:
+  env:
+    data:
+      APP_PROFILE: development
+      FEATURE_VISITS_ENABLED: "true"
+      FEATURE_METRICS_ENABLED: "true"
+
+persistence:
+  enabled: true
+  size: 100Mi
+  storageClass: ""
 
 service:
   type: NodePort

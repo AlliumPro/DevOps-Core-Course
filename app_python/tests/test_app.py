@@ -1,11 +1,12 @@
 import pytest
+from pathlib import Path
 
 from app import app as flask_app
 
 
 @pytest.fixture
-def client():
-    flask_app.config.update(TESTING=True)
+def client(tmp_path):
+    flask_app.config.update(TESTING=True, VISITS_FILE=str(tmp_path / "visits"))
     with flask_app.test_client() as client:
         yield client
 
@@ -44,6 +45,20 @@ def test_health_endpoint(client):
     data = resp.get_json()
     assert data.get("status") == "healthy"
     assert "uptime_seconds" in data
+
+
+def test_visits_endpoint_and_file_persistence(client):
+    client.get("/")
+    client.get("/")
+
+    visits_resp = client.get("/visits")
+    assert visits_resp.status_code == 200
+    visits_data = visits_resp.get_json()
+    assert visits_data.get("visits") == 2
+
+    visits_file = Path(flask_app.config["VISITS_FILE"])
+    assert visits_file.exists()
+    assert visits_file.read_text(encoding="utf-8").strip() == "2"
 
 
 def test_404_returns_json(client):
