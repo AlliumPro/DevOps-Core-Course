@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: devops-app-envs
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - list:
+        elements:
+          - env: dev
+            namespace: dev-appset
+            valueFile: values-dev.yaml
+            autoSync: "true"
+            nodePort: "30083"
+          - env: prod
+            namespace: prod-appset
+            valueFile: values-prod.yaml
+            autoSync: "false"
+            nodePort: "30084"
+  template:
+    metadata:
+      name: devops-app-{{.env}}-generated
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/AlliumPro/DevOps-Core-Course.git
+        targetRevision: lab13
+        path: k8s/devops-app
+        helm:
+          valueFiles:
+            - '{{.valueFile}}'
+          parameters:
+            - name: image.repository
+              value: devops-app
+            - name: image.tag
+              value: lab13-local
+            - name: image.pullPolicy
+              value: IfNotPresent
+            - name: service.type
+              value: NodePort
+            - name: service.nodePort
+              value: '{{.nodePort}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.namespace}}'
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+        automated:
+          prune: true
+          selfHeal: true
+  templatePatch: |
+    {{- if eq .autoSync "false" }}
+    spec:
+      syncPolicy:
+        automated: null
+    {{- end }}
