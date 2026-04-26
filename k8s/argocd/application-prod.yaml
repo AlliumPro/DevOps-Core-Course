@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devops-app-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/AlliumPro/DevOps-Core-Course.git
+    targetRevision: lab13
+    path: k8s/devops-app
+    helm:
+      valueFiles:
+        - values-prod.yaml
+      parameters:
+        - name: image.repository
+          value: devops-app
+        - name: image.tag
+          value: lab13-local
+        - name: image.pullPolicy
+          value: IfNotPresent
+        - name: service.type
+          value: NodePort
+        - name: service.nodePort
+          value: "30082"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

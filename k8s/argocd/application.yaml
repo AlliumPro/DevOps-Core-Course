@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devops-app-main
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/AlliumPro/DevOps-Core-Course.git
+    targetRevision: lab13
+    path: k8s/devops-app
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: image.repository
+          value: devops-app
+        - name: image.tag
+          value: lab13-local
+        - name: image.pullPolicy
+          value: IfNotPresent
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: lab13
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
