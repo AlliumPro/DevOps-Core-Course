@@ -1,13 +1,19 @@
-{{- if and .Values.rollout.enabled (not .Values.statefulset.enabled) }}
-apiVersion: argoproj.io/v1alpha1
-kind: Rollout
+{{- if .Values.statefulset.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: {{ include "devops-app.fullname" . }}
   labels:
     {{- include "devops-app.labels" . | nindent 4 }}
 spec:
+  serviceName: {{ include "devops-app.fullname" . }}-{{ .Values.statefulset.serviceNameSuffix }}
   replicas: {{ .Values.replicaCount }}
-  revisionHistoryLimit: 3
+  updateStrategy:
+    type: {{ .Values.statefulset.updateStrategy.type }}
+    {{- if eq .Values.statefulset.updateStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      partition: {{ .Values.statefulset.updateStrategy.partition }}
+    {{- end }}
   selector:
     matchLabels:
       {{- include "devops-app.selectorLabels" . | nindent 6 }}
@@ -76,39 +82,29 @@ spec:
               readOnly: true
             {{- end }}
             {{- if .Values.persistence.enabled }}
-            - name: data-volume
+            - name: data
               mountPath: {{ .Values.persistence.mountPath }}
             {{- end }}
-      {{- if or .Values.configMap.file.enabled .Values.persistence.enabled }}
       volumes:
         {{- if .Values.configMap.file.enabled }}
         - name: config-file-volume
           configMap:
             name: {{ include "devops-app.configFileConfigMapName" . }}
         {{- end }}
-        {{- if .Values.persistence.enabled }}
-        - name: data-volume
-          persistentVolumeClaim:
-            claimName: {{ include "devops-app.pvcName" . }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "devops-app.labels" . | nindent 10 }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
         {{- end }}
-      {{- end }}
-  strategy:
-    {{- if eq .Values.rollout.strategy "blueGreen" }}
-    blueGreen:
-      activeService: {{ include "devops-app.fullname" . }}-{{ .Values.rollout.blueGreen.activeServiceSuffix }}
-      previewService: {{ include "devops-app.fullname" . }}-{{ .Values.rollout.blueGreen.previewServiceSuffix }}
-      autoPromotionEnabled: {{ .Values.rollout.blueGreen.autoPromotionEnabled }}
-      scaleDownDelaySeconds: {{ .Values.rollout.blueGreen.scaleDownDelaySeconds }}
-    {{- else }}
-    canary:
-      stableService: {{ include "devops-app.fullname" . }}-{{ .Values.rollout.canary.stableServiceSuffix }}
-      canaryService: {{ include "devops-app.fullname" . }}-{{ .Values.rollout.canary.canaryServiceSuffix }}
-      steps:
-{{ toYaml .Values.rollout.canary.steps | nindent 8 }}
-      {{- if .Values.rollout.canary.analysis.enabled }}
-      analysis:
-        templates:
-          - templateName: {{ .Values.rollout.canary.analysis.templateName }}
-      {{- end }}
-    {{- end }}
+  {{- end }}
 {{- end }}
