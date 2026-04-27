@@ -1,0 +1,27 @@
+replicaCount: 4
+
+image:
+  repository: devops-app
+  tag: lab13-local
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+app:
+  environment: canary-v1
+
+persistence:
+  enabled: false
+
+rollout:
+  enabled: true
+  strategy: canary
+  canary:
+    stableServiceSuffix: stable
+    canaryServiceSuffix: canary
+    analysis:
+      enabled: true
+      templateName: success-rate

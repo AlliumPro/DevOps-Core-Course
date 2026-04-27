@@ -1,17 +1,13 @@
-{{- if not .Values.rollout.enabled }}
-apiVersion: apps/v1
-kind: Deployment
+{{- if .Values.rollout.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ include "devops-app.fullname" . }}
   labels:
     {{- include "devops-app.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       {{- include "devops-app.selectorLabels" . | nindent 6 }}
@@ -96,4 +92,23 @@ spec:
             claimName: {{ include "devops-app.pvcName" . }}
         {{- end }}
       {{- end }}
+  strategy:
+    {{- if eq .Values.rollout.strategy "blueGreen" }}
+    blueGreen:
+      activeService: {{ include "devops-app.fullname" . }}-{{ .Values.rollout.blueGreen.activeServiceSuffix }}
+      previewService: {{ include "devops-app.fullname" . }}-{{ .Values.rollout.blueGreen.previewServiceSuffix }}
+      autoPromotionEnabled: {{ .Values.rollout.blueGreen.autoPromotionEnabled }}
+      scaleDownDelaySeconds: {{ .Values.rollout.blueGreen.scaleDownDelaySeconds }}
+    {{- else }}
+    canary:
+      stableService: {{ include "devops-app.fullname" . }}-{{ .Values.rollout.canary.stableServiceSuffix }}
+      canaryService: {{ include "devops-app.fullname" . }}-{{ .Values.rollout.canary.canaryServiceSuffix }}
+      steps:
+{{ toYaml .Values.rollout.canary.steps | nindent 8 }}
+      {{- if .Values.rollout.canary.analysis.enabled }}
+      analysis:
+        templates:
+          - templateName: {{ .Values.rollout.canary.analysis.templateName }}
+      {{- end }}
+    {{- end }}
 {{- end }}
