@@ -1,0 +1,20 @@
+{{- if and .Values.rollout.enabled .Values.rollout.canary.analysis.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ .Values.rollout.canary.analysis.templateName }}
+  labels:
+    {{- include "devops-app.labels" . | nindent 4 }}
+spec:
+  metrics:
+    - name: health-check
+      interval: 10s
+      count: 3
+      failureLimit: 1
+      provider:
+        web:
+          url: http://{{ include "devops-app.fullname" . }}-{{ .Values.rollout.canary.canaryServiceSuffix }}.{{ .Release.Namespace }}.svc.cluster.local/health
+          timeoutSeconds: 5
+          jsonPath: "{$.status}"
+      successCondition: result == "healthy"
+{{- end }}

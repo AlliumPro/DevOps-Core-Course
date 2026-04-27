@@ -92,3 +92,31 @@ vault:
   secretPath: secret/data/devops-app/config
   injectFile: app-config.env
   agentInjectCommand: chmod 0400 /vault/secrets/app-config.env
+
+rollout:
+  enabled: true
+  strategy: canary
+  canary:
+    stableServiceSuffix: stable
+    canaryServiceSuffix: canary
+    steps:
+      - setWeight: 20
+      - pause: {}
+      - setWeight: 40
+      - pause:
+          duration: 30s
+      - setWeight: 60
+      - pause:
+          duration: 30s
+      - setWeight: 80
+      - pause:
+          duration: 30s
+      - setWeight: 100
+    analysis:
+      enabled: false
+      templateName: success-rate
+  blueGreen:
+    activeServiceSuffix: active
+    previewServiceSuffix: preview
+    autoPromotionEnabled: false
+    scaleDownDelaySeconds: 30
