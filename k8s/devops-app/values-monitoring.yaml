@@ -1,0 +1,38 @@
+replicaCount: 3
+
+image:
+  repository: devops-app
+  tag: lab14-v2
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+app:
+  environment: monitoring
+
+persistence:
+  enabled: true
+  size: 50Mi
+  storageClass: ""
+
+rollout:
+  enabled: false
+
+statefulset:
+  enabled: true
+  serviceNameSuffix: headless
+  updateStrategy:
+    type: RollingUpdate
+    partition: 0
+
+serviceMonitor:
+  enabled: true
+  path: /metrics
+  portName: http
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    release: monitoring
