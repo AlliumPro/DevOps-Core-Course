@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wait-target
+  namespace: lab16
+  labels:
+    app: wait-target
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wait-target
+  template:
+    metadata:
+      labels:
+        app: wait-target
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - name: http
+              containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wait-service
+  namespace: lab16
+  labels:
+    app: wait-target
+spec:
+  selector:
+    app: wait-target
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wait-client
+  namespace: lab16
+  labels:
+    app: wait-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wait-client
+  template:
+    metadata:
+      labels:
+        app: wait-client
+    spec:
+      initContainers:
+        - name: wait-for-service
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until wget -qO- http://wait-service; do echo waiting for wait-service; sleep 2; done
+      containers:
+        - name: main
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - echo service reachable; sleep 3600

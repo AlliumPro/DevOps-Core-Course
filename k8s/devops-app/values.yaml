@@ -19,6 +19,15 @@ service:
   targetPort: 5000
   nodePort: 30080
 
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  portName: http
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    release: monitoring
+
 containerPort: 5000
 
 app:
