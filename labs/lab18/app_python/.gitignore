@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+venv/
+env/
+venv*/
+*.log
+.DS_Store
+.vscode/
+.pytest_cache/
+.vault_pass
+data/visits
+result
+result-*
+requirements-unpinned.txt
+freeze*.txt
